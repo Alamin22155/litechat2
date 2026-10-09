@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LiteChat</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+    body { background: #0f172a; display: flex; justify-content: center; align-items: center; height: 100vh; color: #fff; }
+    #login, #chat { background: #1e293b; padding: 20px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+    #login h2 { margin-bottom: 15px; text-align: center; }
+    input { width: 100%; padding: 10px; margin-bottom: 10px; border: none; border-radius: 8px; background: #334155; color: #fff; outline: none; }
+    button { width: 100%; padding: 10px; border: none; border-radius: 8px; background: #22c55e; color: #fff; font-weight: bold; cursor: pointer; }
+    #chat { display: none; flex-direction: column; height: 80vh; }
+    #header { display: flex; justify-content: space-between; padding-bottom: 10px; border-bottom: 1px solid #334155; margin-bottom: 10px; }
+    #messages { flex: 1; overflow-y: auto; margin-bottom: 10px; }
+    .msg { padding: 8px 12px; margin: 5px 0; border-radius: 8px; background: #334155; word-wrap: break-word; }
+    .msg .name { font-size: 12px; color: #22c55e; font-weight: bold; }
+    .msg .time { font-size: 10px; color: #94a3b8; float: right; }
+    .input-row { display: flex; gap: 5px; }
+    .input-row input { margin: 0; }
+    .input-row button { width: auto; padding: 10px 15px; }
+  </style>
+</head>
+<body>
+  <div id="login">
+    <h2>LiteChat</h2>
+    <input id="username" placeholder="আপনার নাম লিখুন" maxlength="20">
+    <button onclick="joinChat()">চ্যাটে যান</button>
+  </div>
+  <div id="chat">
+    <div id="header">
+      <span>💬 LiteChat</span>
+      <span id="me"></span>
+    </div>
+    <div id="messages"></div>
+    <div class="input-row">
+      <input id="msgInput" placeholder="মেসেজ লিখুন..." autocomplete="off">
+      <button onclick="sendMsg()">পাঠান</button>
+    </div>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let username = '';
+    function joinChat() {
+      const name = document.getElementById('username').value.trim();
+      if (!name) return alert('নাম লিখুন!');
+      username = name;
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('chat').style.display = 'flex';
+      document.getElementById('me').textContent = '👤 ' + username;
+    }
+    function sendMsg() {
+      const input = document.getElementById('msgInput');
+      const text = input.value.trim();
+      if (!text) return;
+      socket.emit('chat message', { user: username, text });
+      input.value = '';
+    }
+    document.getElementById('msgInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMsg();
+    });
+    document.getElementById('username').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') joinChat();
+    });
+    function addMsg(data) {
+      const div = document.createElement('div');
+      div.className = 'msg';
+      div.innerHTML = '<span class="name">' + data.user + '</span><span class="time">' + data.time + '</span><div>' + data.text + '</div>';
+      document.getElementById('messages').appendChild(div);
+      div.scrollIntoView();
+    }
+    socket.on('chat history', (msgs) => { msgs.forEach(addMsg); });
+    socket.on('chat message', addMsg);
+  </script>
+</body>
+</html>
